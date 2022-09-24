@@ -40,57 +40,73 @@ pub enum Direction {
 	Left,
 }
 
-/// Tell what happened in the Game, optionally contain data about the
-/// previous positions of some entity, which need to be redrawn.
-/// Does not contain the new position of the Player as the Game has got it.
-#[derive(Clone, Debug)]
-pub enum MoveEvent {
-	NoMove,
-	PlayerMoved {
-		old_x: usize,
-		old_y: usize,
-	},
-	SnowBallDescended {
-		still_snowball_x: usize,
-		still_snowball_y: usize,
-		new_snowball_x: usize,
-		new_snowball_y: usize,
-	},
-	PlayerAndSnowBallMoved {
-		old_player_x: usize,
-		old_player_y: usize,
-		new_snowball_x: usize,
-		new_snowball_y: usize,
-	},
-}
-
 #[derive(Clone, Debug)]
 pub struct Game {
 	pub tiles: [[Tile; SIZE_Y]; SIZE_X],
 	pub snowballs: [[Option<SnowBall>; SIZE_Y]; SIZE_X],
 	pub player: (usize, usize),
+	rewind_stack: Vec<Update>,
 }
 
 impl Game {
+	pub fn process_player_input(&mut self, dir: Direction) -> bool {
+		if let Some(map_diff) = self.step(dir) {
+			self.apply_update(&map_diff.new);
+			self.rewind_stack.push(map_diff.old);
+			// We ain't gonna let the stack grow to out of memory and beyond.
+			if self.rewind_stack.len() >= 2048 {
+				self.rewind_stack.rotate_right(1024);
+				self.rewind_stack.truncate(1024);
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	pub fn rewind(&mut self) -> bool {
+		if let Some(update) = self.rewind_stack.pop() {
+			self.apply_update(&update);
+			return true;
+		} else {
+			println!("Cannot rewind further.");
+			return false;
+		}
+	}
+
+	fn apply_update(&mut self, update: &Update) {
+		self.player = update.player;
+
+		let mut apply_one_time_update = |u: &OneTileUpdate| {
+			if let Some(tile) = u.new_tile {
+				self.tiles[u.x][u.y] = tile;
+			}
+			if let Some(snowball_opt) = u.new_snowball {
+				self.snowballs[u.x][u.y] = snowball_opt;
+			}
+		};
+
+		if let Some((ref tile0, ref tile1)) = update.tiles {
+			apply_one_time_update(tile0);
+			apply_one_time_update(tile1);
+		}
+	}
+
 	// The logic of the game goes here, basically.
-	pub fn step(&mut self, dir: Direction) -> MoveEvent {
+	fn step(&self, dir: Direction) -> Option<MapDiff> {
 		let (x0, y0) = self.player;
 		let target = try_step(x0, y0, dir);
 		if target.is_none() {
-			return MoveEvent::NoMove;
+			return None;
 		}
 		let (x, y) = target.unwrap();
 
 		match (self.tiles[x][y].blocks(), self.snowballs[x][y]) {
 			(true, _) | (false, Some(SnowBall::Snowman)) => {
-				return MoveEvent::NoMove;
+				return None;
 			}
 			(false, None) => {
-				self.player = (x, y);
-				return MoveEvent::PlayerMoved {
-					old_x: x0,
-					old_y: y0,
-				};
+				return Some(self.player_moves(x, y));
 			}
 			(false, Some(_)) => {
 				return self.try_push_snowball(dir, x, y);
@@ -98,12 +114,17 @@ impl Game {
 		}
 	}
 
-	fn try_push_snowball(&mut self, dir: Direction, target_x: usize, target_y: usize) -> MoveEvent {
+	fn try_push_snowball(
+		&self,
+		dir: Direction,
+		target_x: usize,
+		target_y: usize,
+	) -> Option<MapDiff> {
 		if let Some((beyond_x, beyond_y)) = try_step(target_x, target_y, dir) {
 			if self.tiles[beyond_x][beyond_y].blocks()
 				|| self.snowballs[beyond_x][beyond_y] == Some(SnowBall::Snowman)
 			{
-				return MoveEvent::NoMove;
+				return None;
 			}
 
 			let target_snowball = self.snowballs[target_x][target_y]
@@ -116,57 +137,42 @@ impl Game {
 					(SnowBall::Small, SnowBall::MediumOnBig) => Some(SnowBall::Snowman),
 					_ => None,
 				};
-				if let Some(mounted_snowball) = result {
-					self.snowballs[target_x][target_y] = None;
-					self.snowballs[beyond_x][beyond_y] = Some(mounted_snowball);
-
-					// the player
-					let (old_x, old_y) = self.player;
-					self.player = (target_x, target_y);
-
-					return MoveEvent::PlayerAndSnowBallMoved {
-						old_player_x: old_x,
-						old_player_y: old_y,
-						new_snowball_x: beyond_x,
-						new_snowball_y: beyond_y,
-					};
-				} else {
-					return MoveEvent::NoMove;
-				}
+				match result {
+					Some(mounted_snowball) => {
+						return Some(self.player_mounts_snowballs(
+							target_x,
+							target_y,
+							beyond_x,
+							beyond_y,
+							mounted_snowball,
+						))
+					}
+					None => return None,
+				};
 			} else {
 				match target_snowball {
 					SnowBall::Small | SnowBall::Medium | SnowBall::Big => {
-						let new_snowball = if self.tiles[beyond_x][beyond_y] == Tile::Snow {
-							// the snow ball grows
-							match target_snowball {
-								SnowBall::Small => {
-									self.tiles[beyond_x][beyond_y] = Tile::Dirt;
-									SnowBall::Medium
+						let (new_snowball, new_tile) =
+							if self.tiles[beyond_x][beyond_y] == Tile::Snow {
+								// the snow ball grows
+								match target_snowball {
+									SnowBall::Small => (SnowBall::Medium, Some(Tile::Dirt)),
+									SnowBall::Medium => (SnowBall::Big, Some(Tile::Dirt)),
+									SnowBall::Big => (SnowBall::Big, None),
+									_ => unreachable!(),
 								}
-								SnowBall::Medium => {
-									self.tiles[beyond_x][beyond_y] = Tile::Dirt;
-									SnowBall::Big
-								}
-								SnowBall::Big => SnowBall::Big,
-								_ => unreachable!(),
-							}
-						} else {
-							target_snowball
-						};
+							} else {
+								(target_snowball, None)
+							};
 
-						self.snowballs[target_x][target_y] = None;
-						self.snowballs[beyond_x][beyond_y] = Some(new_snowball);
-
-						// the player
-						let (old_x, old_y) = self.player;
-						self.player = (target_x, target_y);
-
-						return MoveEvent::PlayerAndSnowBallMoved {
-							old_player_x: old_x,
-							old_player_y: old_y,
-							new_snowball_x: beyond_x,
-							new_snowball_y: beyond_y,
-						};
+						return Some(self.player_pushes_snowball(
+							target_x,
+							target_y,
+							beyond_x,
+							beyond_y,
+							new_snowball,
+							new_tile,
+						));
 					}
 
 					SnowBall::SmallOnMedium | SnowBall::SmallOnBig | SnowBall::MediumOnBig => {
@@ -177,24 +183,195 @@ impl Game {
 							_ => unreachable!(),
 						};
 
-						self.snowballs[target_x][target_y] = Some(still_snowball);
-						self.snowballs[beyond_x][beyond_y] = Some(pushed_snowball);
-
-						return MoveEvent::SnowBallDescended {
-							still_snowball_x: target_x,
-							still_snowball_y: target_y,
-							new_snowball_x: beyond_x,
-							new_snowball_y: beyond_y,
-						};
+						return Some(self.snowball_descends(
+							target_x,
+							target_y,
+							still_snowball,
+							beyond_x,
+							beyond_y,
+							pushed_snowball,
+						));
 					}
 
 					SnowBall::Snowman => unreachable!(),
 				}
 			}
 		} else {
-			return MoveEvent::NoMove;
+			return None;
 		}
 	}
+
+	fn player_moves(&self, new_x: usize, new_y: usize) -> MapDiff {
+		MapDiff {
+			new: Update {
+				player: (new_x, new_y),
+				tiles: None,
+			},
+			old: Update {
+				player: (self.player.0, self.player.1),
+				tiles: None,
+			},
+		}
+	}
+
+	fn player_pushes_snowball(
+		&self,
+		new_player_x: usize,
+		new_player_y: usize,
+		new_snowball_x: usize,
+		new_snowball_y: usize,
+		snowball_type: SnowBall,
+		new_tile: Option<Tile>,
+	) -> MapDiff {
+		let tile_0_next = OneTileUpdate {
+			x: new_player_x,
+			y: new_player_y,
+			new_tile: None,
+			new_snowball: Some(None),
+		};
+		let tile_0_prev = OneTileUpdate {
+			x: new_player_x,
+			y: new_player_y,
+			new_tile: None,
+			new_snowball: Some(self.snowballs[new_player_x][new_player_y]),
+		};
+		let tile_1_next = OneTileUpdate {
+			x: new_snowball_x,
+			y: new_snowball_y,
+			new_tile,
+			new_snowball: Some(Some(snowball_type)),
+		};
+		let tile_1_prev = OneTileUpdate {
+			x: new_snowball_x,
+			y: new_snowball_y,
+			new_tile: Some(self.tiles[new_snowball_x][new_snowball_y]),
+			new_snowball: Some(self.snowballs[new_snowball_x][new_snowball_y]),
+		};
+
+		return MapDiff {
+			new: Update {
+				player: (new_player_x, new_player_y),
+				tiles: Some((tile_0_next, tile_1_next)),
+			},
+			old: Update {
+				player: (self.player.0, self.player.1),
+				tiles: Some((tile_0_prev, tile_1_prev)),
+			},
+		};
+	}
+
+	fn snowball_descends(
+		&self,
+		still_snowball_x: usize,
+		still_snowball_y: usize,
+		still_snowball_type: SnowBall,
+		moved_snowball_x: usize,
+		moved_snowball_y: usize,
+		moved_snowball_type: SnowBall,
+	) -> MapDiff {
+		let tile_0_next = OneTileUpdate {
+			x: still_snowball_x,
+			y: still_snowball_y,
+			new_tile: None,
+			new_snowball: Some(Some(still_snowball_type)),
+		};
+		let tile_0_prev = OneTileUpdate {
+			x: still_snowball_x,
+			y: still_snowball_y,
+			new_tile: None,
+			new_snowball: Some(self.snowballs[still_snowball_x][still_snowball_y]),
+		};
+		let tile_1_next = OneTileUpdate {
+			x: moved_snowball_x,
+			y: moved_snowball_y,
+			new_tile: None,
+			new_snowball: Some(Some(moved_snowball_type)),
+		};
+		let tile_1_prev = OneTileUpdate {
+			x: moved_snowball_x,
+			y: moved_snowball_y,
+			new_tile: None,
+			new_snowball: Some(None),
+		};
+
+		return MapDiff {
+			new: Update {
+				player: (self.player.0, self.player.1),
+				tiles: Some((tile_0_next, tile_1_next)),
+			},
+			old: Update {
+				player: (self.player.0, self.player.1),
+				tiles: Some((tile_0_prev, tile_1_prev)),
+			},
+		};
+	}
+
+	fn player_mounts_snowballs(
+		&self,
+		new_player_x: usize,
+		new_player_y: usize,
+		new_snowball_x: usize,
+		new_snowball_y: usize,
+		new_snowball_type: SnowBall,
+	) -> MapDiff {
+		let tile_0_next = OneTileUpdate {
+			x: new_player_x,
+			y: new_player_y,
+			new_tile: None,
+			new_snowball: Some(None),
+		};
+		let tile_0_prev = OneTileUpdate {
+			x: new_player_x,
+			y: new_player_y,
+			new_tile: None,
+			new_snowball: Some(self.snowballs[new_player_x][new_player_y]),
+		};
+		let tile_1_next = OneTileUpdate {
+			x: new_snowball_x,
+			y: new_snowball_y,
+			new_tile: None,
+			new_snowball: Some(Some(new_snowball_type)),
+		};
+		let tile_1_prev = OneTileUpdate {
+			x: new_snowball_x,
+			y: new_snowball_y,
+			new_tile: None,
+			new_snowball: Some(self.snowballs[new_snowball_x][new_snowball_y]),
+		};
+
+		return MapDiff {
+			new: Update {
+				player: (new_player_x, new_player_y),
+				tiles: Some((tile_0_next, tile_1_next)),
+			},
+			old: Update {
+				player: (self.player.0, self.player.1),
+				tiles: Some((tile_0_prev, tile_1_prev)),
+			},
+		};
+	}
+
+	// Create two opposite one-tile updates.
+	// Applying the FIRST one and then the SECOND one
+	// to the game will leave it in its original state.
+	// fn create_opposite(
+	// 	x: usize,
+	// 	y: usize,
+	// 	new_and_old_tile: Option<(Tile, Tile)>,
+	// 	new_snowball: Option<SnowBall>,
+	// 	old_snowball: Option<SnowBall>,
+	// ) -> (OneTileUpdate, OneTileUpdate) {
+	// 	let (next_tile, prev_tile) = if let Some((a, b)) = new_and_old_tile {
+	// 		(Some(a), Some(b))
+	// 	} else {
+	// 		(None, None)
+	// 	};
+	// 	let (next_snowball, prev_snowball) = if new_snowball == old_snowball {
+	// 		(None,None)
+	// 	} else {
+	// 		(new_snowball)
+	// 	}
+	// }
 }
 
 impl Tile {
@@ -210,6 +387,34 @@ fn try_step(x: usize, y: usize, dir: Direction) -> Option<(usize, usize)> {
 		Direction::Down => (x != SIZE_X - 1).then(|| (x + 1, y)),
 		Direction::Left => (y != 0).then(|| (x, y - 1)),
 	}
+}
+
+//////////////////////////////////
+
+/// Data allowing to update one tile. Consists of the tile's
+/// coordinates and either the new tile or new snowball, or both.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct OneTileUpdate {
+	x: usize,
+	y: usize,
+	new_tile: Option<Tile>,
+	new_snowball: Option<Option<SnowBall>>,
+}
+
+/// Data allowing to perform a player's step. Changing the player's
+/// position and optionally the map's tiles. If the player doesn't move,
+/// his coordinates will be present nonetheless but identical to the
+/// player's previous position.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct Update {
+	player: (usize, usize),
+	tiles: Option<(OneTileUpdate, OneTileUpdate)>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct MapDiff {
+	new: Update,
+	old: Update,
 }
 
 //////////////////////////////////
@@ -241,6 +446,7 @@ impl Game {
 			tiles,
 			snowballs,
 			player: (player_x, player_y),
+			rewind_stack: Vec::with_capacity(64),
 		};
 	}
 }

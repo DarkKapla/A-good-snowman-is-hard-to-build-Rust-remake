@@ -21,11 +21,15 @@ fn main() {
 	window.set_ups(30);
 	window.set_lazy(false); // if true, the application consumes 100% of my CPU. Very intuitive.
 
+	let commands = r#"
+Use Z/Q/S/D to move around.
+Press E or R to rewind one turn.
+Press ESC to quit."#;
 	println!(
-		"Rendering on {}.",
-		window.device.get_info().platform_name.renderer
+		"Rendering on {}.{}",
+		window.device.get_info().platform_name.renderer,
+		commands
 	);
-	println!("Use Z/Q/S/D to move around. Press ESC to quit.");
 
 	let mut must_redraw = true;
 	let mut game = game::Game::instanciate();
@@ -52,22 +56,16 @@ fn main() {
 
 		if let Some(button) = event.press_args() {
 			if let Button::Keyboard(key) = button {
-				match key {
-					Key::Z => {
-						game.step(game::Direction::Up);
-					}
-					Key::Q => {
-						game.step(game::Direction::Left);
-					}
-					Key::S => {
-						game.step(game::Direction::Down);
-					}
-					Key::D => {
-						game.step(game::Direction::Right);
-					}
-					_ => {}
-				}
-				must_redraw = true;
+				must_redraw = match key {
+					Key::Z => game.process_player_input(game::Direction::Up),
+					Key::Q => game.process_player_input(game::Direction::Left),
+					Key::S => game.process_player_input(game::Direction::Down),
+					Key::D => game.process_player_input(game::Direction::Right),
+
+					Key::E | Key::R => game.rewind(),
+
+					_ => false,
+				};
 			}
 		}
 	}
