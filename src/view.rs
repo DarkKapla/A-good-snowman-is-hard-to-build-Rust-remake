@@ -2,7 +2,7 @@
 //!
 //!
 
-const TILE_SIDE: f64 = 64.0;
+pub const TILE_SIDE: f64 = 64.0;
 const TILE_RECTANGLE: [f64; 4] = [0.0, 0.0, TILE_SIDE, TILE_SIDE];
 // snow ball
 const RADIUS_SMALL: f64 = 0.1875;
@@ -51,20 +51,35 @@ pub fn draw_afer_move(game: &game::Game, context: Context, graphics: &mut G2d) {
 	todo!();
 }
 
-pub fn draw_all(game: &game::Game, context: Context, graphics: &mut G2d) {
+pub fn draw_all(vp: Viewport, game: &game::Game, context: Context, graphics: &mut G2d) {
 	clear([0.125, 0.125, 0.125, 1.0], graphics);
-	for x in 0..game::SIZE_X {
-		for y in 0..game::SIZE_Y {
-			draw_one_tile(x, y, game, context, graphics);
+
+	let max_x = usize::min(vp.len_x, game::SIZE_X);
+	let max_y = usize::min(vp.len_y, game::SIZE_Y);
+
+	for x in (vp.base_x)..max_x {
+		for y in (vp.base_y)..max_y {
+			draw_one_tile(x, y, vp, game, context, graphics);
 		}
 	}
-	draw_player(game.player.0, game.player.1, context, graphics)
+
+	let (px, py) = game.player;
+	if vp.base_x < px && px < vp.len_x && vp.base_y < py && py < vp.len_y {
+		draw_player(px - vp.base_x, py - vp.base_y, context, graphics);
+	}
 }
 
 /// Draw all but the player.
-fn draw_one_tile(x: usize, y: usize, game: &game::Game, context: Context, graphics: &mut G2d) {
-	let tx = x as f64 * TILE_SIDE;
-	let ty = y as f64 * TILE_SIDE;
+fn draw_one_tile(
+	x: usize,
+	y: usize,
+	vp: Viewport,
+	game: &game::Game,
+	context: Context,
+	graphics: &mut G2d,
+) {
+	let tx = (x - vp.base_x) as f64 * TILE_SIDE;
+	let ty = (y - vp.base_y) as f64 * TILE_SIDE;
 	// Background tile.
 	let color = match game.tiles[x][y] {
 		game::Tile::Empty => [0.125, 0.125, 0.125, 1.0],
@@ -160,4 +175,27 @@ fn draw_player(x: usize, y: usize, context: Context, graphics: &mut G2d) {
 		context.transform.trans(ty, tx),
 		graphics,
 	);
+}
+
+/// Store data to print only a sub-view of the map.
+/// It's a rectangle. All the map tiles inside the
+/// rectangle will be drawn in the window.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Viewport {
+	pub base_x: usize,
+	pub base_y: usize,
+	pub len_x: usize,
+	pub len_y: usize,
+}
+
+impl Viewport {
+	pub fn center_around_player(&mut self, game: &game::Game) {
+		self.base_x = game.player.0.checked_sub(self.len_x / 2).unwrap_or(0);
+		self.base_y = game.player.1.checked_sub(self.len_y / 2).unwrap_or(0);
+	}
+
+	pub fn resize(&mut self, args: piston_window::ResizeArgs) {
+		self.len_x = (args.window_size[1] / TILE_SIDE) as usize;
+		self.len_y = (args.window_size[0] / TILE_SIDE) as usize;
+	}
 }
