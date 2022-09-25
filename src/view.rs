@@ -67,7 +67,7 @@ fn draw_one_tile(x: usize, y: usize, game: &game::Game, context: Context, graphi
 	let ty = y as f64 * TILE_SIDE;
 	// Background tile.
 	let color = match game.tiles[x][y] {
-		game::Tile::Empty => [0.0, 0.0, 0.0, 0.0],
+		game::Tile::Empty => [0.125, 0.125, 0.125, 1.0],
 		game::Tile::Dirt => [0.625, 0.4375, 0.125, 1.0],
 		game::Tile::Snow => [0.8125, 0.8125, 0.875, 1.0],
 		game::Tile::Hedge => [0.125, 0.5, 0.0, 1.0],

@@ -18,7 +18,7 @@ fn main() {
 		.unwrap();
 
 	window.set_max_fps(10);
-	window.set_ups(30);
+	window.set_ups(0); // disable update-events
 	window.set_lazy(false); // if true, the application consumes 100% of my CPU. Very intuitive.
 
 	let commands = r#"
@@ -40,15 +40,17 @@ Press ESC to quit."#;
 	// 		.unwrap();
 
 	while let Some(event) = window.next() {
-		if let Some(_args) = event.render_args() {
+		// It draws only if the event is a render event. The check is automatic.
+		window.draw_2d(&event, |context, graphics, _device| {
 			if must_redraw {
 				must_redraw = false;
-				window.draw_2d(&event, |context, graphics, _device| {
-					clear([0.125, 0.125, 0.125, 1.0], graphics);
-					view::draw_all(&game, context, graphics);
-				});
+				view::draw_all(&game, context, graphics);
 			}
-		}
+			if let Some(redraw_tiles) = tiles_to_redraw {
+				tiles_to_redraw = None;
+				view::draw_afer_move(&game, context, graphics, redraw_tiles);
+			}
+		});
 
 		if let Some(_args) = event.resize_args() {
 			must_redraw = true;
@@ -69,4 +71,12 @@ Press ESC to quit."#;
 			}
 		}
 	}
+
+	let snowmen_count = game
+		.snowballs
+		.iter()
+		.flatten()
+		.filter(|o| **o == Some(game::SnowBall::Snowman))
+		.count();
+	println!("Number of snowmen: {snowmen_count}. ⛄️");
 }

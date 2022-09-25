@@ -69,7 +69,7 @@ impl Game {
 			self.apply_update(&update);
 			return true;
 		} else {
-			println!("Cannot rewind further.");
+			println!("Cannot rewind any further.");
 			return false;
 		}
 	}
@@ -123,6 +123,7 @@ impl Game {
 		if let Some((beyond_x, beyond_y)) = try_step(target_x, target_y, dir) {
 			if self.tiles[beyond_x][beyond_y].blocks()
 				|| self.snowballs[beyond_x][beyond_y] == Some(SnowBall::Snowman)
+				|| self.tiles[beyond_x][beyond_y] == Tile::Empty
 			{
 				return None;
 			}
@@ -350,28 +351,6 @@ impl Game {
 			},
 		};
 	}
-
-	// Create two opposite one-tile updates.
-	// Applying the FIRST one and then the SECOND one
-	// to the game will leave it in its original state.
-	// fn create_opposite(
-	// 	x: usize,
-	// 	y: usize,
-	// 	new_and_old_tile: Option<(Tile, Tile)>,
-	// 	new_snowball: Option<SnowBall>,
-	// 	old_snowball: Option<SnowBall>,
-	// ) -> (OneTileUpdate, OneTileUpdate) {
-	// 	let (next_tile, prev_tile) = if let Some((a, b)) = new_and_old_tile {
-	// 		(Some(a), Some(b))
-	// 	} else {
-	// 		(None, None)
-	// 	};
-	// 	let (next_snowball, prev_snowball) = if new_snowball == old_snowball {
-	// 		(None,None)
-	// 	} else {
-	// 		(new_snowball)
-	// 	}
-	// }
 }
 
 impl Tile {
@@ -411,6 +390,8 @@ struct Update {
 	tiles: Option<(OneTileUpdate, OneTileUpdate)>,
 }
 
+/// A pair of Updates (new, old) which are each other's opposite.
+/// Applying new and then old leaves the game in the same state.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct MapDiff {
 	new: Update,
