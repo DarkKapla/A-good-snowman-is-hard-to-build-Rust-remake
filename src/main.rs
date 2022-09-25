@@ -35,13 +35,7 @@ Press ESC to quit."#;
 
 	let mut must_redraw = true;
 	let mut game = game::Game::instanciate();
-	let mut viewport = view::Viewport {
-		base_x: 0,
-		base_y: 0,
-		len_x: 12,
-		len_y: 18,
-	};
-	viewport.center_around_player(&game);
+	let mut viewport = view::Viewport::new(&game, (1200, 800));
 
 	// let texture_context = window.create_texture_context();
 	// let mut glyph =
@@ -59,6 +53,7 @@ Press ESC to quit."#;
 
 		if let Some(args) = event.resize_args() {
 			viewport.resize(args);
+			viewport.center_around_player(&game);
 			must_redraw = true;
 		}
 

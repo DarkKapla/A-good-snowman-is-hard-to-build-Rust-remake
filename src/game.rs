@@ -97,6 +97,7 @@ impl Game {
 		let (x0, y0) = self.player;
 		let target = try_step(x0, y0, dir);
 		if target.is_none() {
+			println!("Cannot move outside the map.");
 			return None;
 		}
 		let (x, y) = target.unwrap();
@@ -437,6 +438,7 @@ impl SnowBall {
 			's' | 'S' => Some(SnowBall::Small),
 			'm' | 'M' => Some(SnowBall::Medium),
 			'b' | 'B' => Some(SnowBall::Big),
+			'x' => Some(SnowBall::SmallOnMedium),
 
 			_ => None,
 		}
@@ -447,7 +449,7 @@ impl Tile {
 	fn from_char(c: char) -> Tile {
 		match c {
 			' ' => Tile::Empty,
-			'.' | 's' | 'm' | 'b' => Tile::Dirt,
+			'.' | 's' | 'm' | 'b' | 'x' => Tile::Dirt,
 			',' | 'S' | 'M' | 'B' => Tile::Snow,
 			'h' => Tile::Hedge,
 			't' => Tile::Tree,

@@ -54,8 +54,8 @@ pub fn draw_afer_move(game: &game::Game, context: Context, graphics: &mut G2d) {
 pub fn draw_all(vp: Viewport, game: &game::Game, context: Context, graphics: &mut G2d) {
 	clear([0.125, 0.125, 0.125, 1.0], graphics);
 
-	let max_x = usize::min(vp.len_x, game::SIZE_X);
-	let max_y = usize::min(vp.len_y, game::SIZE_Y);
+	let max_x = usize::min(vp.base_x + vp.len_x + 1, game::SIZE_X);
+	let max_y = usize::min(vp.base_y + vp.len_y + 1, game::SIZE_Y);
 
 	for x in (vp.base_x)..max_x {
 		for y in (vp.base_y)..max_y {
@@ -64,7 +64,7 @@ pub fn draw_all(vp: Viewport, game: &game::Game, context: Context, graphics: &mu
 	}
 
 	let (px, py) = game.player;
-	if vp.base_x < px && px < vp.len_x && vp.base_y < py && py < vp.len_y {
+	if vp.base_x <= px && px < max_x && vp.base_y <= py && py < max_y {
 		draw_player(px - vp.base_x, py - vp.base_y, context, graphics);
 	}
 }
@@ -189,6 +189,18 @@ pub struct Viewport {
 }
 
 impl Viewport {
+	pub fn new(game: &game::Game, window_size: (usize, usize)) -> Viewport {
+		let len_x = (window_size.0 as f64 / TILE_SIDE) as usize;
+		let len_y = (window_size.1 as f64 / TILE_SIDE) as usize;
+		let base_x = game.player.0.checked_sub(len_x / 2).unwrap_or(0);
+		let base_y = game.player.1.checked_sub(len_y / 2).unwrap_or(0);
+		Viewport {
+			base_x,
+			base_y,
+			len_x,
+			len_y,
+		}
+	}
 	pub fn center_around_player(&mut self, game: &game::Game) {
 		self.base_x = game.player.0.checked_sub(self.len_x / 2).unwrap_or(0);
 		self.base_y = game.player.1.checked_sub(self.len_y / 2).unwrap_or(0);
