@@ -153,18 +153,17 @@ impl Game {
 			} else {
 				match target_snowball {
 					SnowBall::Small | SnowBall::Medium | SnowBall::Big => {
-						let (new_snowball, new_tile) =
-							if self.tiles[beyond_x][beyond_y] == Tile::Snow {
-								// the snow ball grows
-								match target_snowball {
-									SnowBall::Small => (SnowBall::Medium, Some(Tile::Dirt)),
-									SnowBall::Medium => (SnowBall::Big, Some(Tile::Dirt)),
-									SnowBall::Big => (SnowBall::Big, None),
-									_ => unreachable!(),
-								}
-							} else {
-								(target_snowball, None)
-							};
+						let new_snowball = if self.tiles[beyond_x][beyond_y] == Tile::Snow {
+							// the snow ball grows
+							match target_snowball {
+								SnowBall::Small => SnowBall::Medium,
+								SnowBall::Medium => SnowBall::Big,
+								SnowBall::Big => SnowBall::Big,
+								_ => unreachable!(),
+							}
+						} else {
+							target_snowball
+						};
 
 						return Some(self.player_pushes_snowball(
 							target_x,
@@ -172,7 +171,7 @@ impl Game {
 							beyond_x,
 							beyond_y,
 							new_snowball,
-							new_tile,
+							self.tiles[beyond_x][beyond_y] == Tile::Snow,
 						));
 					}
 
@@ -222,7 +221,7 @@ impl Game {
 		new_snowball_x: usize,
 		new_snowball_y: usize,
 		snowball_type: SnowBall,
-		new_tile: Option<Tile>,
+		remove_snow: bool,
 	) -> MapDiff {
 		let tile_0_next = OneTileUpdate {
 			x: new_player_x,
@@ -239,13 +238,13 @@ impl Game {
 		let tile_1_next = OneTileUpdate {
 			x: new_snowball_x,
 			y: new_snowball_y,
-			new_tile,
+			new_tile: if remove_snow { Some(Tile::Dirt) } else { None },
 			new_snowball: Some(Some(snowball_type)),
 		};
 		let tile_1_prev = OneTileUpdate {
 			x: new_snowball_x,
 			y: new_snowball_y,
-			new_tile: Some(self.tiles[new_snowball_x][new_snowball_y]),
+			new_tile: if remove_snow { Some(Tile::Snow) } else { None },
 			new_snowball: Some(self.snowballs[new_snowball_x][new_snowball_y]),
 		};
 
