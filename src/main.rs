@@ -68,6 +68,7 @@ Press ESC to quit."#;
 					Key::E | Key::R => game.rewind(),
 
 					Key::Space => {
+						// TODO next feature: when space is hold, the cam follows the player
 						viewport.center_around_player(&game);
 						true
 					}
@@ -85,4 +86,29 @@ Press ESC to quit."#;
 		.filter(|o| **o == Some(game::SnowBall::Snowman))
 		.count();
 	println!("Number of snowmen: {snowmen_count}. ⛄️");
+}
+
+/// Used to parse the SIZE_X and SIZE_Y global constants of game.rs
+const fn str_to_usize(s: &str) -> usize {
+	const fn d_to_usize(byte: u8) -> usize {
+		match byte {
+			0x30 => 0,
+			0x31 => 1,
+			0x32 => 2,
+			0x33 => 3,
+			0x34 => 4,
+			0x35 => 5,
+			0x36 => 6,
+			0x37 => 7,
+			0x38 => 8,
+			0x39 => 9,
+			_ => panic!("non-digit character"),
+		}
+	}
+	let s = s.as_bytes();
+	let unit = d_to_usize(s[s.len() - 1]);
+	let tens = 10 * d_to_usize(s[s.len() - 2]);
+	let hundreds = 100 * d_to_usize(s[s.len() - 3]);
+
+	return hundreds + tens + unit;
 }

@@ -2,8 +2,8 @@
 //!
 //!
 
-pub const SIZE_X: usize = 12;
-pub const SIZE_Y: usize = 11;
+pub const SIZE_X: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_X"));
+pub const SIZE_Y: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_Y"));
 
 /*
    +-----> y
