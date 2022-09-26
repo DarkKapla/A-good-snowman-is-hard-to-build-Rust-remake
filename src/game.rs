@@ -14,7 +14,7 @@ pub const SIZE_Y: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_Y"));
 pub enum SnowBall {
 	Small,
 	Medium,
-	Big,
+	Big, // "Large" is a better fit tho.
 	SmallOnBig,
 	SmallOnMedium,
 	MediumOnBig,
@@ -46,10 +46,17 @@ pub struct Game {
 	pub snowballs: [[Option<SnowBall>; SIZE_Y]; SIZE_X],
 	pub player: (usize, usize),
 	rewind_stack: Vec<Update>,
+	input_history: String,
 }
 
 impl Game {
 	pub fn process_player_input(&mut self, dir: Direction) -> bool {
+		self.process_player_input_no_history(dir)
+			.then(|| self.input_history.push(dir.into()))
+			.is_some()
+	}
+
+	fn process_player_input_no_history(&mut self, dir: Direction) -> bool {
 		if let Some(map_diff) = self.step(dir) {
 			self.apply_update(&map_diff.new);
 			self.rewind_stack.push(map_diff.old);
@@ -67,6 +74,7 @@ impl Game {
 	pub fn rewind(&mut self) -> bool {
 		if let Some(update) = self.rewind_stack.pop() {
 			self.apply_update(&update);
+			self.input_history.pop();
 			return true;
 		} else {
 			println!("Cannot rewind any further.");
@@ -351,6 +359,42 @@ impl Game {
 			},
 		};
 	}
+
+	pub fn get_history(&self) -> &str {
+		&self.input_history
+	}
+
+	pub fn apply_history(&mut self, history: &str) -> Result<(), char> {
+		if let Some(c) = history
+			.chars()
+			.find(|c| !matches!(c, 'U' | 'L' | 'D' | 'R'))
+		{
+			return Err(c);
+		}
+
+		for (i, dir) in history
+			.chars()
+			.map(|c| match c {
+				'U' => Direction::Up,
+				'L' => Direction::Left,
+				'D' => Direction::Down,
+				'R' => Direction::Right,
+				_ => unreachable!(),
+			})
+			.enumerate()
+		{
+			if !self.process_player_input_no_history(dir) {
+				println!("Warning: the save data are not coherent with the current map.");
+				// revert the game back to its previous state.
+				for _ in 0..=i {
+					self.rewind();
+				}
+				return Ok(());
+			}
+		}
+		self.input_history.push_str(history);
+		Ok(())
+	}
 }
 
 impl Tile {
@@ -365,6 +409,17 @@ fn try_step(x: usize, y: usize, dir: Direction) -> Option<(usize, usize)> {
 		Direction::Right => (y != SIZE_Y - 1).then(|| (x, y + 1)),
 		Direction::Down => (x != SIZE_X - 1).then(|| (x + 1, y)),
 		Direction::Left => (y != 0).then(|| (x, y - 1)),
+	}
+}
+
+impl Into<char> for Direction {
+	fn into(self) -> char {
+		match self {
+			Direction::Up => 'U',
+			Direction::Left => 'L',
+			Direction::Down => 'D',
+			Direction::Right => 'R',
+		}
 	}
 }
 
@@ -428,6 +483,7 @@ impl Game {
 			snowballs,
 			player: (player_x, player_y),
 			rewind_stack: Vec::with_capacity(64),
+			input_history: String::with_capacity(64),
 		};
 	}
 }

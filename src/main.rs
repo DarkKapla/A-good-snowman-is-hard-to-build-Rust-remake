@@ -6,9 +6,11 @@
 use piston_window::*;
 
 mod game;
+mod save;
 mod view;
 
 const TITLE: &'static str = "A good snowcrab is hard to build.";
+const SAVE_FILE: &'static str = "save.txt";
 
 fn main() {
 	let mut window: PistonWindow = WindowSettings::new(TITLE, [1200, 800])
@@ -21,22 +23,34 @@ fn main() {
 	window.set_ups(0); // disable update-events
 	window.set_lazy(false); // if true, the application consumes 100% of my CPU. Very intuitive.
 
+	println!(
+		"Rendering on {}.",
+		window.device.get_info().platform_name.renderer
+	);
+
 	let commands = r#"
 --- Controls ---
 Use Z/Q/S/D to move around.
 Press E or R to rewind one turn.
 Press space bar to recenter the view.
-Press ESC to quit."#;
-	println!(
-		"Rendering on {}.\n{}\n",
-		window.device.get_info().platform_name.renderer,
-		commands
-	);
+Press ESC to quit.
+"#;
+	print!("{}", commands);
 
 	let mut must_redraw = true;
 	let mut cam_follows = false;
 	let mut game = game::Game::instanciate();
 	let mut viewport = view::Viewport::new(&game, (1200, 800));
+
+	// Attempt to load the last game's save.
+	if std::path::Path::new(SAVE_FILE).exists() {
+		if let Err(e) = save::load(&mut game, SAVE_FILE) {
+			println!(
+				"Error when loading the save file {SAVE_FILE}: {:?}.",
+				e.kind()
+			);
+		}
+	}
 
 	// let texture_context = window.create_texture_context();
 	// let mut glyph =
@@ -87,6 +101,13 @@ Press ESC to quit."#;
 				cam_follows = false;
 			}
 		}
+	}
+
+	// save the current game
+	if let Err(e) = save::save(&game, SAVE_FILE) {
+		println!("Couldn't save file {SAVE_FILE}: {:?}", e.kind());
+	} else {
+		println!("Game was saved to {SAVE_FILE}.");
 	}
 
 	let snowmen_count = game
