@@ -34,6 +34,7 @@ Press ESC to quit."#;
 	);
 
 	let mut must_redraw = true;
+	let mut cam_follows = false;
 	let mut game = game::Game::instanciate();
 	let mut viewport = view::Viewport::new(&game, (1200, 800));
 
@@ -59,7 +60,7 @@ Press ESC to quit."#;
 
 		if let Some(button) = event.press_args() {
 			if let Button::Keyboard(key) = button {
-				must_redraw = match key {
+				let has_moved = match key {
 					Key::Z | Key::Up => game.process_player_input(game::Direction::Up),
 					Key::Q | Key::Left => game.process_player_input(game::Direction::Left),
 					Key::S | Key::Down => game.process_player_input(game::Direction::Down),
@@ -67,14 +68,23 @@ Press ESC to quit."#;
 
 					Key::E | Key::R => game.rewind(),
 
-					Key::Space => {
-						// TODO next feature: when space is hold, the cam follows the player
-						viewport.center_around_player(&game);
-						true
-					}
-
 					_ => false,
 				};
+				if (has_moved && cam_follows) || key == Key::Space {
+					viewport.center_around_player(&game);
+					must_redraw = true;
+					if key == Key::Space {
+						cam_follows = true;
+					}
+				} else if has_moved {
+					must_redraw = true;
+				}
+			}
+		}
+
+		if let Some(button) = event.release_args() {
+			if button == Button::Keyboard(Key::Space) {
+				cam_follows = false;
 			}
 		}
 	}
