@@ -494,7 +494,7 @@ impl SnowBall {
 			's' | 'S' => Some(SnowBall::Small),
 			'm' | 'M' => Some(SnowBall::Medium),
 			'b' | 'B' => Some(SnowBall::Big),
-			'x' => Some(SnowBall::SmallOnMedium),
+			'x' | 'X' => Some(SnowBall::SmallOnMedium),
 
 			_ => None,
 		}
@@ -506,8 +506,8 @@ impl Tile {
 		match c {
 			' ' => Tile::Empty,
 			'.' | 's' | 'm' | 'b' | 'x' => Tile::Dirt,
-			',' | 'S' | 'M' | 'B' => Tile::Snow,
-			'h' => Tile::Hedge,
+			',' | 'S' | 'M' | 'B' | 'X' => Tile::Snow,
+			'h' | '#' => Tile::Hedge,
 			't' => Tile::Tree,
 			'o' => Tile::Obstacle,
 

@@ -22,5 +22,9 @@ pub fn load<P: AsRef<Path>>(game: &mut crate::game::Game, from: P) -> std::io::R
 }
 
 pub fn save<P: AsRef<Path>>(game: &crate::game::Game, to: P) -> std::io::Result<()> {
-	std::fs::write(to, game.get_history())
+	if game.get_history().len() != 0 {
+		std::fs::write(to, game.get_history())
+	} else {
+		Ok(())
+	}
 }

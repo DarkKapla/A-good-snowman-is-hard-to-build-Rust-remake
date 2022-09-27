@@ -20,7 +20,7 @@ fn main() {
 		.unwrap();
 
 	window.set_max_fps(10);
-	window.set_ups(0); // disable update-events
+	window.set_ups(100); // 0 disable update-events but also bumps the CPU consumption to 100%.
 	window.set_lazy(false); // if true, the application consumes 100% of my CPU. Very intuitive.
 
 	println!(

@@ -47,10 +47,6 @@ use piston_window::{clear, ellipse, line_from_to, rectangle, Context, Ellipse, G
 
 use crate::game;
 
-pub fn draw_afer_move(game: &game::Game, context: Context, graphics: &mut G2d) {
-	todo!();
-}
-
 pub fn draw_all(vp: Viewport, game: &game::Game, context: Context, graphics: &mut G2d) {
 	clear([0.125, 0.125, 0.125, 1.0], graphics);
 
@@ -82,10 +78,10 @@ fn draw_one_tile(
 	let ty = (y - vp.base_y) as f64 * TILE_SIDE;
 	// Background tile.
 	let color = match game.tiles[x][y] {
-		game::Tile::Empty => [0.125, 0.125, 0.125, 1.0],
+		game::Tile::Empty => [0.375, 0.375, 0.375, 1.0],
 		game::Tile::Dirt => [0.625, 0.4375, 0.125, 1.0],
 		game::Tile::Snow => [0.8125, 0.8125, 0.875, 1.0],
-		game::Tile::Hedge => [0.125, 0.5, 0.0, 1.0],
+		game::Tile::Hedge => [0.0625, 0.375, 0.0, 1.0],
 		game::Tile::Tree => [0.125, 0.75, 0.25, 1.0],
 		game::Tile::Obstacle => [0.375, 0.25, 0.375, 1.0],
 	};
