@@ -2,6 +2,8 @@
 //!
 //!
 
+use std::collections::VecDeque;
+
 pub const SIZE_X: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_X"));
 pub const SIZE_Y: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_Y"));
 
@@ -45,7 +47,7 @@ pub struct Game {
 	pub tiles: [[Tile; SIZE_Y]; SIZE_X],
 	pub snowballs: [[Option<SnowBall>; SIZE_Y]; SIZE_X],
 	pub player: (usize, usize),
-	rewind_stack: Vec<Update>,
+	rewind_stack: VecDeque<Update>,
 	input_history: String,
 }
 
@@ -58,13 +60,13 @@ impl Game {
 
 	fn process_player_input_no_history(&mut self, dir: Direction) -> bool {
 		if let Some(map_diff) = self.step(dir) {
-			self.apply_update(&map_diff.new);
-			self.rewind_stack.push(map_diff.old);
 			// We ain't gonna let the stack grow to out of memory and beyond.
 			if self.rewind_stack.len() >= 2048 {
-				self.rewind_stack.rotate_right(1024);
-				self.rewind_stack.truncate(1024);
+				self.rewind_stack.pop_front();
 			}
+
+			self.apply_update(&map_diff.new);
+			self.rewind_stack.push_back(map_diff.old);
 			return true;
 		} else {
 			return false;
@@ -72,7 +74,7 @@ impl Game {
 	}
 
 	pub fn rewind(&mut self) -> bool {
-		if let Some(update) = self.rewind_stack.pop() {
+		if let Some(update) = self.rewind_stack.pop_back() {
 			self.apply_update(&update);
 			self.input_history.pop();
 			return true;
@@ -495,7 +497,7 @@ impl Game {
 			tiles,
 			snowballs,
 			player: (player_x, player_y),
-			rewind_stack: Vec::with_capacity(64),
+			rewind_stack: VecDeque::with_capacity(64),
 			input_history: String::with_capacity(64),
 		};
 	}
