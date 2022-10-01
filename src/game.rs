@@ -160,9 +160,11 @@ impl Game {
 					None => return None,
 				};
 			} else {
+				let beyond_is_snow = self.tiles[beyond_x][beyond_y] == Tile::Snow;
+
 				match target_snowball {
 					SnowBall::Small | SnowBall::Medium | SnowBall::Big => {
-						let new_snowball = if self.tiles[beyond_x][beyond_y] == Tile::Snow {
+						let new_snowball = if beyond_is_snow {
 							// the snow ball grows
 							match target_snowball {
 								SnowBall::Small => SnowBall::Medium,
@@ -180,17 +182,26 @@ impl Game {
 							beyond_x,
 							beyond_y,
 							new_snowball,
-							self.tiles[beyond_x][beyond_y] == Tile::Snow,
+							beyond_is_snow,
 						));
 					}
 
 					SnowBall::SmallOnMedium | SnowBall::SmallOnBig | SnowBall::MediumOnBig => {
-						let (still_snowball, pushed_snowball) = match target_snowball {
+						let (still_snowball, mut pushed_snowball) = match target_snowball {
 							SnowBall::SmallOnMedium => (SnowBall::Medium, SnowBall::Small),
 							SnowBall::SmallOnBig => (SnowBall::Big, SnowBall::Small),
 							SnowBall::MediumOnBig => (SnowBall::Big, SnowBall::Medium),
 							_ => unreachable!(),
 						};
+
+						if beyond_is_snow {
+							// The pushed snowball grows if it lands on snow.
+							pushed_snowball = if pushed_snowball == SnowBall::Small {
+								SnowBall::Medium
+							} else {
+								SnowBall::Big
+							};
+						}
 
 						return Some(self.snowball_descends(
 							target_x,
@@ -199,6 +210,7 @@ impl Game {
 							beyond_x,
 							beyond_y,
 							pushed_snowball,
+							beyond_is_snow,
 						));
 					}
 
@@ -277,6 +289,7 @@ impl Game {
 		moved_snowball_x: usize,
 		moved_snowball_y: usize,
 		moved_snowball_type: SnowBall,
+		remove_snow: bool,
 	) -> MapDiff {
 		let tile_0_next = OneTileUpdate {
 			x: still_snowball_x,
@@ -293,13 +306,13 @@ impl Game {
 		let tile_1_next = OneTileUpdate {
 			x: moved_snowball_x,
 			y: moved_snowball_y,
-			new_tile: None,
+			new_tile: if remove_snow { Some(Tile::Dirt) } else { None },
 			new_snowball: Some(Some(moved_snowball_type)),
 		};
 		let tile_1_prev = OneTileUpdate {
 			x: moved_snowball_x,
 			y: moved_snowball_y,
-			new_tile: None,
+			new_tile: if remove_snow { Some(Tile::Snow) } else { None },
 			new_snowball: Some(None),
 		};
 
