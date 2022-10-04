@@ -45,10 +45,9 @@ Press ESC to quit.
 	// Attempt to load the last game's save.
 	if std::path::Path::new(SAVE_FILE).exists() {
 		if let Err(e) = save::load(&mut game, SAVE_FILE) {
-			println!(
-				"Error when loading the save file {SAVE_FILE}: {:?}.",
-				e.kind()
-			);
+			println!("Error when loading the save file {SAVE_FILE}: {:?}.", e);
+		} else {
+			println!("Previous save loaded.");
 		}
 	}
 
@@ -104,10 +103,10 @@ Press ESC to quit.
 	}
 
 	// save the current game
-	if let Err(e) = save::save(&game, SAVE_FILE) {
-		println!("Couldn't save file {SAVE_FILE}: {:?}", e.kind());
-	} else {
-		println!("Game was saved to {SAVE_FILE}.");
+	match save::save(&game, SAVE_FILE) {
+		Err(e) => println!("Couldn't save file {SAVE_FILE}: {:?}", e.kind()),
+		Ok(true) => println!("Game was saved to {SAVE_FILE}."),
+		Ok(false) => {}
 	}
 
 	let snowmen_count = game

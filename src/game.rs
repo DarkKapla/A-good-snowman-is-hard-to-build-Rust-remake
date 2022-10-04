@@ -382,13 +382,14 @@ impl Game {
 	pub fn apply_history(&mut self, history: &str) -> Result<(), char> {
 		if let Some(c) = history
 			.chars()
-			.find(|c| !matches!(c, 'U' | 'L' | 'D' | 'R'))
+			.find(|c| !matches!(c, 'U' | 'L' | 'D' | 'R' | '\n'))
 		{
 			return Err(c);
 		}
 
 		for (i, dir) in history
 			.chars()
+			.filter(|&c| c != '\n')
 			.map(|c| match c {
 				'U' => Direction::Up,
 				'L' => Direction::Left,
