@@ -3,10 +3,14 @@
 fn main() {
 	println!("cargo:rerun-if-changed=map.txt");
 
-	const MAP: &'static str = include_str!("map.txt");
+	const MAP: &'static [u8] = include_bytes!("map.txt");
 
-	let size_x = MAP.bytes().filter(|&b| b == b'\n').count();
-	let size_y = MAP.find('\n').unwrap_or_else(|| MAP.len());
+	let size_x = MAP.iter().filter(|&&b| b == b'\n').count();
+	let size_y = MAP
+		.iter()
+		.enumerate()
+		.find_map(|(i, &b)| if b == b'\n' { Some(i) } else { None })
+		.unwrap_or_else(|| MAP.len());
 
 	assert!(size_x | size_y != 0, "The map is empty!");
 	assert!(
