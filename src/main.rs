@@ -32,7 +32,8 @@ fn main() {
 --- Controls ---
 Use Z/Q/S/D to move around.
 Press E or R to rewind one turn.
-Press space bar to recenter the view.
+Press T to reset the current level. (WARNING: it erases the rewind memory)
+Press space bar to recenter the view. Hold to make the cam follow the player.
 Press ESC to quit.
 "#;
 	print!("{}", commands);
@@ -80,6 +81,8 @@ Press ESC to quit.
 					Key::D | Key::Right => game.process_player_input(game::Direction::Right),
 
 					Key::E | Key::R => game.rewind(),
+
+					Key::T => game.reset_current_level(),
 
 					_ => false,
 				};

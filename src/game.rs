@@ -2,6 +2,8 @@
 //!
 //!
 
+mod reset;
+
 use std::collections::VecDeque;
 
 pub const SIZE_X: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_X"));
@@ -47,7 +49,7 @@ pub struct Game {
 	pub tiles: [[Tile; SIZE_Y]; SIZE_X],
 	pub snowballs: [[Option<SnowBall>; SIZE_Y]; SIZE_X],
 	pub player: (usize, usize),
-	rewind_stack: VecDeque<Update>,
+	rewind_queue: VecDeque<Update>,
 	input_history: String,
 }
 
@@ -61,12 +63,12 @@ impl Game {
 	fn process_player_input_no_history(&mut self, dir: Direction) -> bool {
 		if let Some(map_diff) = self.step(dir) {
 			// We ain't gonna let the stack grow to out of memory and beyond.
-			if self.rewind_stack.len() >= 2048 {
-				self.rewind_stack.pop_front();
+			if self.rewind_queue.len() >= 2048 {
+				self.rewind_queue.pop_front();
 			}
 
 			self.apply_update(&map_diff.new);
-			self.rewind_stack.push_back(map_diff.old);
+			self.rewind_queue.push_back(map_diff.old);
 			return true;
 		} else {
 			return false;
@@ -74,7 +76,7 @@ impl Game {
 	}
 
 	pub fn rewind(&mut self) -> bool {
-		if let Some(update) = self.rewind_stack.pop_back() {
+		if let Some(update) = self.rewind_queue.pop_back() {
 			self.apply_update(&update);
 			self.input_history.pop();
 			return true;
@@ -84,21 +86,41 @@ impl Game {
 		}
 	}
 
+	pub fn reset_current_level(&mut self) -> bool {
+		self.reset_current_level_no_history()
+			.then(|| self.input_history.push('T'))
+			.is_some()
+	}
+
+	fn reset_current_level_no_history(&mut self) -> bool {
+		// TODO: How to reset the player's position?
+		let changes = self.current_level_diff();
+		if changes.is_empty() {
+			println!("Cannot reset the level.");
+			return false;
+		}
+		for update in changes.into_iter() {
+			self.apply_unit_update(&update);
+		}
+		self.rewind_queue.clear();
+		return true;
+	}
+
 	fn apply_update(&mut self, update: &Update) {
 		self.player = update.player;
 
-		let mut apply_one_time_update = |u: &OneTileUpdate| {
-			if let Some(tile) = u.new_tile {
-				self.tiles[u.x][u.y] = tile;
-			}
-			if let Some(snowball_opt) = u.new_snowball {
-				self.snowballs[u.x][u.y] = snowball_opt;
-			}
-		};
-
 		if let Some((ref tile0, ref tile1)) = update.tiles {
-			apply_one_time_update(tile0);
-			apply_one_time_update(tile1);
+			self.apply_unit_update(tile0);
+			self.apply_unit_update(tile1);
+		}
+	}
+
+	fn apply_unit_update(&mut self, u: &OneTileUpdate) {
+		if let Some(tile) = u.new_tile {
+			self.tiles[u.x][u.y] = tile;
+		}
+		if let Some(snowball_opt) = u.new_snowball {
+			self.snowballs[u.x][u.y] = snowball_opt;
 		}
 	}
 
@@ -382,32 +404,30 @@ impl Game {
 	pub fn apply_history(&mut self, history: &str) -> Result<(), char> {
 		if let Some(c) = history
 			.chars()
-			.find(|c| !matches!(c, 'U' | 'L' | 'D' | 'R' | '\n'))
+			.find(|c| !matches!(c, 'U' | 'L' | 'D' | 'R' | 'T' | '\n'))
 		{
 			return Err(c);
 		}
 
-		for (i, dir) in history
-			.chars()
-			.filter(|&c| c != '\n')
-			.map(|c| match c {
-				'U' => Direction::Up,
-				'L' => Direction::Left,
-				'D' => Direction::Down,
-				'R' => Direction::Right,
+		for (i, c) in history.chars().filter(|&c| c != '\n').enumerate() {
+			let action_worked = match c {
+				'U' => self.process_player_input_no_history(Direction::Up),
+				'L' => self.process_player_input_no_history(Direction::Left),
+				'D' => self.process_player_input_no_history(Direction::Down),
+				'R' => self.process_player_input_no_history(Direction::Right),
+				'T' => self.reset_current_level_no_history(),
 				_ => unreachable!(),
-			})
-			.enumerate()
-		{
-			if !self.process_player_input_no_history(dir) {
+			};
+			if !action_worked {
 				println!("Warning: the save data are not coherent with the current map.");
 				// revert the game back to its previous state.
 				for _ in 0..=i {
-					self.rewind();
+					self.rewind(); // not optimal because the reset might have cleared the queue
 				}
 				return Ok(());
 			}
 		}
+
 		self.input_history.push_str(history);
 		Ok(())
 	}
@@ -444,7 +464,7 @@ impl Into<char> for Direction {
 /// Data allowing to update one tile. Consists of the tile's
 /// coordinates and either the new tile or new snowball, or both.
 #[derive(Clone, PartialEq, Eq, Debug)]
-struct OneTileUpdate {
+pub struct OneTileUpdate {
 	x: usize,
 	y: usize,
 	new_tile: Option<Tile>,
@@ -498,7 +518,7 @@ impl Game {
 			tiles,
 			snowballs,
 			player: (player_x, player_y),
-			rewind_stack: VecDeque::with_capacity(64),
+			rewind_queue: VecDeque::with_capacity(64),
 			input_history: String::with_capacity(64),
 		};
 	}
