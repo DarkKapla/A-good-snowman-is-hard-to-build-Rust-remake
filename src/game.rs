@@ -419,11 +419,8 @@ impl Game {
 				_ => unreachable!(),
 			};
 			if !action_worked {
-				println!("Warning: the save data are not coherent with the current map.");
-				// revert the game back to its previous state.
-				for _ in 0..=i {
-					self.rewind(); // not optimal because the reset might have cleared the queue
-				}
+				println!("Warning: the save data is not coherent with the current map. Error at character of index {i}.");
+				self.input_history.push_str(&history[..i]);
 				return Ok(());
 			}
 		}
