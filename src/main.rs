@@ -124,19 +124,8 @@ Press ESC to quit.
 /// Used to parse the SIZE_X and SIZE_Y global constants of game.rs
 const fn str_to_usize(s: &str) -> usize {
 	const fn d_to_usize(byte: u8) -> usize {
-		match byte {
-			0x30 => 0,
-			0x31 => 1,
-			0x32 => 2,
-			0x33 => 3,
-			0x34 => 4,
-			0x35 => 5,
-			0x36 => 6,
-			0x37 => 7,
-			0x38 => 8,
-			0x39 => 9,
-			_ => panic!("non-digit character"),
-		}
+		assert!(0x30 <= byte && byte <= 0x39, "non-digit character");
+		return (byte & 15) as usize;
 	}
 	let s = s.as_bytes();
 	let unit = d_to_usize(s[s.len() - 1]);
