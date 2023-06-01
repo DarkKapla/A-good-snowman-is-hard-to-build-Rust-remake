@@ -20,6 +20,7 @@ struct LevelDfsExplorer {
 	to_explore: Vec<(usize, usize)>,
 	visited: HashSet<(usize, usize)>,
 }
+// It's more a flood algo than a DFS. FLOOD is more accurate.
 
 impl LevelDfsExplorer {
 	fn from_point(root_x: usize, root_y: usize) -> LevelDfsExplorer {
@@ -105,7 +106,11 @@ fn try_generate_update_at(game: &Game, x: usize, y: usize) -> Option<OneTileUpda
  * different actions that can be separated. The current active implementation, relying
  * on an iterator, does the separation "explore tiles" / "turn tiles into Updates"
  * without creating a temporary vector of all the level's tiles. I keep the old function
- * in order to compare the two later on. I'd certainly like to know which one is the fastest.
+ * anyway.
+ *
+ * According to valgrind with callgrind, with profile opt-level="s", lto=true:
+ * The fastest function is the while-loop one. It costs about 1,550 "Ir" less than the
+ * iterator function, making it 5.56% faster.
  */
 
 /* impl Game {
@@ -124,7 +129,7 @@ pub fn current_level_diff(&self) -> Vec<super::OneTileUpdate> {
 
 	while let Some((x, y)) = to_explore.pop() {
 		// process the current position
-		if let Some(u) = generate_update(self, x, y) {
+		if let Some(u) = try_generate_update_at(self, x, y) {
 			updates.push(u);
 		}
 
