@@ -197,9 +197,10 @@ impl Viewport {
 			len_y,
 		}
 	}
+
 	pub fn center_around_player(&mut self, game: &game::Game) {
-		self.base_x = game.player.0.checked_sub(self.len_x / 2).unwrap_or(0);
-		self.base_y = game.player.1.checked_sub(self.len_y / 2).unwrap_or(0);
+		self.base_x = game.player.0.checked_sub(self.len_x / 2).unwrap_or(0).min(game::SIZE_X - self.len_x);
+		self.base_y = game.player.1.checked_sub(self.len_y / 2).unwrap_or(0).min(game::SIZE_Y - self.len_y);
 	}
 
 	pub fn resize(&mut self, args: piston_window::ResizeArgs) {
