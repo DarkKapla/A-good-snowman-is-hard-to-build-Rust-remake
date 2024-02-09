@@ -7,7 +7,7 @@ const TILE_RECTANGLE: [f64; 4] = [0.0, 0.0, TILE_SIDE, TILE_SIDE];
 // snow ball
 const RADIUS_SMALL: f64 = 0.1875;
 const RADIUS_MEDIUM: f64 = 0.4375;
-const RADIUS_BIG: f64 = 0.6875;
+const RADIUS_LARGE: f64 = 0.6875;
 const BALL_SMALL: [f64; 4] = [
 	TILE_SIDE * (1.0 - RADIUS_SMALL) / 2.0,
 	TILE_SIDE * 0.5625,
@@ -20,11 +20,11 @@ const BALL_MEDIUM: [f64; 4] = [
 	TILE_SIDE * RADIUS_MEDIUM,
 	TILE_SIDE * RADIUS_MEDIUM,
 ];
-const BALL_BIG: [f64; 4] = [
-	TILE_SIDE * (1.0 - RADIUS_BIG) / 2.0,
+const BALL_LARGE: [f64; 4] = [
+	TILE_SIDE * (1.0 - RADIUS_LARGE) / 2.0,
 	TILE_SIDE * 0.1875,
-	TILE_SIDE * RADIUS_BIG,
-	TILE_SIDE * RADIUS_BIG,
+	TILE_SIDE * RADIUS_LARGE,
+	TILE_SIDE * RADIUS_LARGE,
 ];
 // the player
 const PLAYER_RECTANGLE: [f64; 4] = [
@@ -96,10 +96,10 @@ fn draw_one_tile(
 		let rect = match snowball {
 			game::SnowBall::Small => BALL_SMALL,
 			game::SnowBall::Medium | game::SnowBall::SmallOnMedium => BALL_MEDIUM,
-			game::SnowBall::Big
-			| game::SnowBall::MediumOnBig
-			| game::SnowBall::SmallOnBig
-			| game::SnowBall::Snowman => BALL_BIG,
+			game::SnowBall::Large
+			| game::SnowBall::MediumOnLarge
+			| game::SnowBall::SmallOnLarge
+			| game::SnowBall::Snowman => BALL_LARGE,
 		};
 		SNOWBALL_DRAWER.draw(
 			rect,
@@ -115,14 +115,14 @@ fn draw_one_tile(
 				context.transform.trans(ty, tx - TILE_SIDE * 0.3125),
 				graphics,
 			);
-		} else if snowball == game::SnowBall::SmallOnBig {
+		} else if snowball == game::SnowBall::SmallOnLarge {
 			SNOWBALL_DRAWER.draw(
 				BALL_SMALL,
 				&context.draw_state,
 				context.transform.trans(ty, tx - TILE_SIDE * 0.4375),
 				graphics,
 			);
-		} else if snowball == game::SnowBall::MediumOnBig {
+		} else if snowball == game::SnowBall::MediumOnLarge {
 			SNOWBALL_DRAWER.draw(
 				BALL_MEDIUM,
 				&context.draw_state,

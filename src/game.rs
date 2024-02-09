@@ -18,10 +18,10 @@ pub const SIZE_Y: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_Y"));
 pub enum SnowBall {
 	Small,
 	Medium,
-	Big, // "Large" is a better fit tho.
-	SmallOnBig,
+	Large,
+	SmallOnLarge,
 	SmallOnMedium,
-	MediumOnBig,
+	MediumOnLarge,
 	Snowman,
 }
 
@@ -166,9 +166,9 @@ impl Game {
 			if let Some(beyond_snowball) = self.snowballs[beyond_x][beyond_y] {
 				let result = match (target_snowball, beyond_snowball) {
 					(SnowBall::Small, SnowBall::Medium) => Some(SnowBall::SmallOnMedium),
-					(SnowBall::Small, SnowBall::Big) => Some(SnowBall::SmallOnBig),
-					(SnowBall::Medium, SnowBall::Big) => Some(SnowBall::MediumOnBig),
-					(SnowBall::Small, SnowBall::MediumOnBig) => Some(SnowBall::Snowman),
+					(SnowBall::Small, SnowBall::Large) => Some(SnowBall::SmallOnLarge),
+					(SnowBall::Medium, SnowBall::Large) => Some(SnowBall::MediumOnLarge),
+					(SnowBall::Small, SnowBall::MediumOnLarge) => Some(SnowBall::Snowman),
 					_ => None,
 				};
 				match result {
@@ -187,12 +187,12 @@ impl Game {
 				let beyond_is_snow = self.tiles[beyond_x][beyond_y] == Tile::Snow;
 
 				match target_snowball {
-					SnowBall::Small | SnowBall::Medium | SnowBall::Big => {
+					SnowBall::Small | SnowBall::Medium | SnowBall::Large => {
 						let new_snowball = if beyond_is_snow {
 							// the snow ball grows
 							match target_snowball {
 								SnowBall::Small => SnowBall::Medium,
-								SnowBall::Medium | SnowBall::Big => SnowBall::Big,
+								SnowBall::Medium | SnowBall::Large => SnowBall::Large,
 								_ => unreachable!(),
 							}
 						} else {
@@ -209,11 +209,11 @@ impl Game {
 						));
 					}
 
-					SnowBall::SmallOnMedium | SnowBall::SmallOnBig | SnowBall::MediumOnBig => {
+					SnowBall::SmallOnMedium | SnowBall::SmallOnLarge | SnowBall::MediumOnLarge => {
 						let (still_snowball, mut pushed_snowball) = match target_snowball {
 							SnowBall::SmallOnMedium => (SnowBall::Medium, SnowBall::Small),
-							SnowBall::SmallOnBig => (SnowBall::Big, SnowBall::Small),
-							SnowBall::MediumOnBig => (SnowBall::Big, SnowBall::Medium),
+							SnowBall::SmallOnLarge => (SnowBall::Large, SnowBall::Small),
+							SnowBall::MediumOnLarge => (SnowBall::Large, SnowBall::Medium),
 							_ => unreachable!(),
 						};
 
@@ -222,7 +222,7 @@ impl Game {
 							pushed_snowball = if pushed_snowball == SnowBall::Small {
 								SnowBall::Medium
 							} else {
-								SnowBall::Big
+								SnowBall::Large
 							};
 						}
 
@@ -525,7 +525,7 @@ impl SnowBall {
 		match c {
 			's' | 'S' => Some(SnowBall::Small),
 			'm' | 'M' => Some(SnowBall::Medium),
-			'b' | 'B' => Some(SnowBall::Big),
+			'l' | 'L' => Some(SnowBall::Large),
 			'x' | 'X' => Some(SnowBall::SmallOnMedium),
 
 			_ => None,
@@ -537,8 +537,8 @@ impl Tile {
 	fn from_char(c: char) -> Tile {
 		match c {
 			' ' => Tile::Empty,
-			'.' | 's' | 'm' | 'b' | 'x' => Tile::Dirt,
-			',' | 'S' | 'M' | 'B' | 'X' => Tile::Snow,
+			'.' | 's' | 'm' | 'l' | 'x' => Tile::Dirt,
+			',' | 'S' | 'M' | 'L' | 'X' => Tile::Snow,
 			'h' | '#' => Tile::Hedge,
 			't' => Tile::Tree,
 			'o' => Tile::Obstacle,
