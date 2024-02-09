@@ -6,9 +6,6 @@ use std::path::Path;
 
 pub fn load<P: AsRef<Path>>(game: &mut crate::game::Game, from: P) -> std::io::Result<()> {
 	let history = std::fs::read_to_string(from)?;
-	if history.len() == 0 {
-		return Ok(());
-	}
 
 	game.apply_history(&history).map_err(|c| {
 		std::io::Error::new(

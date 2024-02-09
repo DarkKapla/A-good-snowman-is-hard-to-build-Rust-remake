@@ -192,8 +192,7 @@ impl Game {
 							// the snow ball grows
 							match target_snowball {
 								SnowBall::Small => SnowBall::Medium,
-								SnowBall::Medium => SnowBall::Big,
-								SnowBall::Big => SnowBall::Big,
+								SnowBall::Medium | SnowBall::Big => SnowBall::Big,
 								_ => unreachable!(),
 							}
 						} else {

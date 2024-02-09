@@ -127,6 +127,7 @@ const fn str_to_usize(s: &str) -> usize {
 		assert!(0x30 <= byte && byte <= 0x39, "non-digit character");
 		return (byte & 15) as usize;
 	}
+
 	let s = s.as_bytes();
 	let unit = d_to_usize(s[s.len() - 1]);
 	let tens = 10 * d_to_usize(s[s.len() - 2]);
