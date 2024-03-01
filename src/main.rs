@@ -9,8 +9,8 @@ mod game;
 mod save;
 mod view;
 
-const TITLE: &'static str = "A good snowcrab is hard to build.";
-const SAVE_FILE: &'static str = "save.txt";
+const TITLE: &str = "A good snowcrab is hard to build.";
+const SAVE_FILE: &str = "save.txt";
 
 fn main() {
 	let mut window: PistonWindow = WindowSettings::new(TITLE, [1200, 800])
@@ -72,36 +72,32 @@ Press ESC to quit.
 			must_redraw = true;
 		}
 
-		if let Some(button) = event.press_args() {
-			if let Button::Keyboard(key) = button {
-				let has_moved = match key {
-					Key::Z | Key::Up => game.process_player_input(game::Direction::Up),
-					Key::Q | Key::Left => game.process_player_input(game::Direction::Left),
-					Key::S | Key::Down => game.process_player_input(game::Direction::Down),
-					Key::D | Key::Right => game.process_player_input(game::Direction::Right),
+		if let Some(Button::Keyboard(key)) = event.press_args() {
+			let has_moved = match key {
+				Key::Z | Key::Up => game.process_player_input(game::Direction::Up),
+				Key::Q | Key::Left => game.process_player_input(game::Direction::Left),
+				Key::S | Key::Down => game.process_player_input(game::Direction::Down),
+				Key::D | Key::Right => game.process_player_input(game::Direction::Right),
 
-					Key::E | Key::R => game.rewind(),
+				Key::E | Key::R => game.rewind(),
 
-					Key::T => game.reset_current_level(),
+				Key::T => game.reset_current_level(),
 
-					_ => false,
-				};
-				if (has_moved && cam_follows) || key == Key::Space {
-					viewport.center_around_player(&game);
-					must_redraw = true;
-					if key == Key::Space {
-						cam_follows = true;
-					}
-				} else if has_moved {
-					must_redraw = true;
+				_ => false,
+			};
+			if (has_moved && cam_follows) || key == Key::Space {
+				viewport.center_around_player(&game);
+				must_redraw = true;
+				if key == Key::Space {
+					cam_follows = true;
 				}
+			} else if has_moved {
+				must_redraw = true;
 			}
 		}
 
-		if let Some(button) = event.release_args() {
-			if button == Button::Keyboard(Key::Space) {
-				cam_follows = false;
-			}
+		if let Some(Button::Keyboard(Key::Space)) = event.release_args() {
+			cam_follows = false;
 		}
 	}
 

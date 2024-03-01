@@ -3,7 +3,7 @@
 fn main() {
 	println!("cargo:rerun-if-changed=map.txt");
 
-	const MAP: &'static [u8] = include_bytes!("map.txt");
+	const MAP: &[u8] = include_bytes!("map.txt");
 
 	let size_x = MAP.iter().filter(|&&b| b == b'\n').count();
 	let size_y = MAP

@@ -188,8 +188,8 @@ impl Viewport {
 	pub fn new(game: &game::Game, window_size: (usize, usize)) -> Viewport {
 		let len_x = (window_size.0 as f64 / TILE_SIDE) as usize;
 		let len_y = (window_size.1 as f64 / TILE_SIDE) as usize;
-		let base_x = game.player.0.checked_sub(len_x / 2).unwrap_or(0);
-		let base_y = game.player.1.checked_sub(len_y / 2).unwrap_or(0);
+		let base_x = game.player.0.saturating_sub(len_x / 2);
+		let base_y = game.player.1.saturating_sub(len_y / 2);
 		Viewport {
 			base_x,
 			base_y,
@@ -199,8 +199,16 @@ impl Viewport {
 	}
 
 	pub fn center_around_player(&mut self, game: &game::Game) {
-		self.base_x = game.player.0.checked_sub(self.len_x / 2).unwrap_or(0).min(game::SIZE_X - self.len_x);
-		self.base_y = game.player.1.checked_sub(self.len_y / 2).unwrap_or(0).min(game::SIZE_Y - self.len_y);
+		self.base_x = game
+			.player
+			.0
+			.saturating_sub(self.len_x / 2)
+			.min(game::SIZE_X - self.len_x);
+		self.base_y = game
+			.player
+			.1
+			.saturating_sub(self.len_y / 2)
+			.min(game::SIZE_Y - self.len_y);
 	}
 
 	pub fn resize(&mut self, args: piston_window::ResizeArgs) {

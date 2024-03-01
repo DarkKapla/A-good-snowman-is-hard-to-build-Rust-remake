@@ -17,7 +17,7 @@ pub fn load<P: AsRef<Path>>(game: &mut crate::game::Game, from: P) -> std::io::R
 }
 
 pub fn save<P: AsRef<Path>>(game: &crate::game::Game, to: P) -> std::io::Result<bool> {
-	if game.get_history().len() != 0 {
+	if !game.get_history().is_empty() {
 		std::fs::write(to, game.get_history()).map(|_| true)
 	} else {
 		Ok(false)

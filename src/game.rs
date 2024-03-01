@@ -25,6 +25,22 @@ pub enum SnowBall {
 	Snowman,
 }
 
+impl SnowBall {
+	/// Return a grown version of the snowball.
+	/// ## panic
+	/// Panic if the snowball is everything but small, medium or large.
+	pub fn grow(self) -> Self {
+		match self {
+			SnowBall::Small => SnowBall::Medium,
+			SnowBall::Medium | SnowBall::Large => SnowBall::Large,
+			_ => panic!(
+				"Only Small, Medium and Large snowballs can be grown, but input was {:?}",
+				self
+			),
+		}
+	}
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tile {
 	Empty,
@@ -189,12 +205,7 @@ impl Game {
 				match target_snowball {
 					SnowBall::Small | SnowBall::Medium | SnowBall::Large => {
 						let new_snowball = if beyond_is_snow {
-							// the snow ball grows
-							match target_snowball {
-								SnowBall::Small => SnowBall::Medium,
-								SnowBall::Medium | SnowBall::Large => SnowBall::Large,
-								_ => unreachable!(),
-							}
+							target_snowball.grow()
 						} else {
 							target_snowball
 						};
@@ -219,11 +230,7 @@ impl Game {
 
 						if beyond_is_snow {
 							// The pushed snowball grows if it lands on snow.
-							pushed_snowball = if pushed_snowball == SnowBall::Small {
-								SnowBall::Medium
-							} else {
-								SnowBall::Large
-							};
+							pushed_snowball = pushed_snowball.grow();
 						}
 
 						return Some(self.snowball_descends(
@@ -444,9 +451,9 @@ fn try_step(x: usize, y: usize, dir: Direction) -> Option<(usize, usize)> {
 	}
 }
 
-impl Into<char> for Direction {
-	fn into(self) -> char {
-		match self {
+impl From<Direction> for char {
+	fn from(value: Direction) -> Self {
+		match value {
 			Direction::Up => 'U',
 			Direction::Left => 'L',
 			Direction::Down => 'D',
@@ -487,7 +494,7 @@ struct MapDiff {
 
 //////////////////////////////////
 
-const MAP: &'static str = include_str!("../map.txt");
+const MAP: &str = include_str!("../map.txt");
 
 impl Game {
 	pub fn instanciate() -> Game {
