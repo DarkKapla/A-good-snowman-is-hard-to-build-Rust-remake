@@ -26,17 +26,13 @@ pub enum SnowBall {
 }
 
 impl SnowBall {
-	/// Return a grown version of the snowball.
-	/// ## panic
-	/// Panic if the snowball is everything but small, medium or large.
-	pub fn grow(self) -> Self {
+	/// Return a grown version of the snowball which must be a single small, medium or large ball.
+	/// Return `None` if not applicable.
+	pub fn grow(self) -> Option<Self> {
 		match self {
-			SnowBall::Small => SnowBall::Medium,
-			SnowBall::Medium | SnowBall::Large => SnowBall::Large,
-			_ => panic!(
-				"Only Small, Medium and Large snowballs can be grown, but input was {:?}",
-				self
-			),
+			SnowBall::Small => Some(SnowBall::Medium),
+			SnowBall::Medium | SnowBall::Large => Some(SnowBall::Large),
+			_ => Option::<SnowBall>::None,
 		}
 	}
 }
@@ -205,7 +201,7 @@ impl Game {
 				match target_snowball {
 					SnowBall::Small | SnowBall::Medium | SnowBall::Large => {
 						let new_snowball = if beyond_is_snow {
-							target_snowball.grow()
+							target_snowball.grow().expect("unreachable")
 						} else {
 							target_snowball
 						};
@@ -230,7 +226,7 @@ impl Game {
 
 						if beyond_is_snow {
 							// The pushed snowball grows if it lands on snow.
-							pushed_snowball = pushed_snowball.grow();
+							pushed_snowball = pushed_snowball.grow().expect("unreachable");
 						}
 
 						return Some(self.snowball_descends(
