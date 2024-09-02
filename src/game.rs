@@ -6,8 +6,8 @@ mod reset;
 
 use std::collections::VecDeque;
 
-pub const SIZE_X: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_X"));
-pub const SIZE_Y: usize = crate::str_to_usize(env!("SNOWCRAB_SIZE_Y"));
+pub const SIZE_X: usize = str_to_usize(env!("SNOWCRAB_SIZE_X"));
+pub const SIZE_Y: usize = str_to_usize(env!("SNOWCRAB_SIZE_Y"));
 
 /*
    +-----> y
@@ -547,4 +547,21 @@ impl Tile {
 			_ => Tile::Empty,
 		}
 	}
+}
+
+
+/// Used to parse the SIZE_X and SIZE_Y global constants of game.rs
+const fn str_to_usize(s: &str) -> usize {
+	assert!(s.len() == 3);
+	const fn d_to_usize(byte: u8) -> usize {
+		assert!(0x30 <= byte && byte <= 0x39, "non-digit character");
+		return (byte & 15) as usize;
+	}
+
+	let s = s.as_bytes();
+	let unit = d_to_usize(s[s.len() - 1]);
+	let tens = 10 * d_to_usize(s[s.len() - 2]);
+	let hundreds = 100 * d_to_usize(s[s.len() - 3]);
+
+	return hundreds + tens + unit;
 }
