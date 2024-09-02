@@ -496,8 +496,7 @@ impl Game {
 	pub fn instanciate() -> Game {
 		let mut tiles = [[Tile::Empty; SIZE_Y]; SIZE_X];
 		let mut snowballs = [[None; SIZE_Y]; SIZE_X];
-		let mut player_x = !0;
-		let mut player_y = !0;
+		let mut player_pos = None::<(usize, usize)>;
 
 		for (i, c) in MAP.chars().filter(|c| *c != '\n').enumerate() {
 			let x = i / SIZE_Y;
@@ -506,17 +505,16 @@ impl Game {
 			tiles[x][y] = Tile::from_char(c);
 			snowballs[x][y] = SnowBall::from_char(c);
 			if c == 'P' {
-				player_x = x;
-				player_y = y;
+				assert!(player_pos.is_none(), "There cannot be two player's initial positions on the map.");
+				player_pos = Some((x, y));
 			}
 		}
-		assert_ne!(player_x, !0);
-		assert_ne!(player_y, !0);
+		assert!(player_pos.is_some(), "Missing player's initial positions on the map.");
 
 		return Game {
 			tiles,
 			snowballs,
-			player: (player_x, player_y),
+			player: player_pos.unwrap(),
 			rewind_queue: VecDeque::with_capacity(64),
 			input_history: String::with_capacity(64),
 		};
